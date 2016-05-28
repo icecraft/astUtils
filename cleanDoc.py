@@ -2,28 +2,61 @@
 # -*- coding: utf-8 -*-
 
 import ast
-import argparse
-from astor.code_gen import SourceGenerator, set_precedence
+from astor.code_gen import SourceGenerator
 from astor.string_repr import pretty_string
 from astor.source_repr import pretty_source
 import os
-import sys
+import click
+import warnings
+from functools import partial
+from shutil import copyfile
+
 
 __all__=['to_source']
+
 
 """
 the version of astor must be
 __version__ = '0.6'
 """
 
-def to_source(node, indent_with=' ' * 4, add_line_information=False,
-                            pretty_string=pretty_string, pretty_source=pretty_source):
+
+def _safe_do(func, *args):
+        try:
+                return func(*args)
+        except:
+                return None
+
+
+def convert_file(sf, df, func):
+        with open(df, "aw") as ofd, open(sf, 'r') as ifd:
+                ast_node = ast.parse(ifd.read(), filename=sf)
+                ofd.write(func(ast_node))
+
+                           
+def convert_dirs(ind, outd, func):
+        for root, dirs, files in os.walk(ind):
+                _dpath = partial(os.path.join, outd, root)
+                _spath = partial(os.path.join, root)
+                _safe_do(os.makedirs, _dpath())
+                for fn in files:
+                        try:
+                                convert_file(_spath(fn),
+                                             _dpath(fn), func)
+                        except:
+                                copyfile(_spath(fn),
+                                         _dpath(fn))
+                                
+                        
+def noComment(node, indent_with=' ' * 4, add_line_information=False,
+              pretty_string=pretty_string, pretty_source=pretty_source):
 
         generator = NoDocSourceGenerator(indent_with, add_line_information,
-                                pretty_string)
+                                         pretty_string)
         generator.visit(node)
         generator.result.append('\n')
         return pretty_source(str(s) for s in generator.result)
+
 
 class NoDocSourceGenerator(SourceGenerator):
 
@@ -33,52 +66,44 @@ class NoDocSourceGenerator(SourceGenerator):
                     return
             super(NoDocSourceGenerator, self).visit_Expr(node)
 
+            
+ast_func = {'noComment': noComment}
+            
+            
+@click.command()
+@click.option('--inputf', '-m', multiple=True,
+              help='input files or directory')
+@click.option('--outputd', default='Converted',
+              help='output directory')
+@click.option('--op', type=click.Choice(['noComment']),
+              default='noComment', help='choose the operation')
+def run_args(inputf, outputd, op):
+        if not os.path.exists(outputd):
+                os.mkdir(outputd)
+        for fn in inputf:
+                if os.path.isfile(fn) and ".py" in fn[-3:]:
+                        _safe_do(os.remove, os.path.join(outputd,
+                                                         fn))
+
+                        convert_file(fn, os.path.join(outputd,
+                                                      fn),
+                                     ast_func[op])
+
+                elif os.path.isdir(fn):
+                        _safe_do(os.rmdir, os.path.join(outputd,
+                                                        fn))
+
+                        convert_dirs(fn, os.path.join(outputd,
+                                                      fn),
+                                     ast_func[op])
+
+                else:
+                        warnings.warn("Invalid file name %s" % fn)
+                
+
 if __name__ == '__main__':
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--verbosity", help="increase output verbosity")
-        parser.add_argument("--output", action="store", dest="output", default="noComent",
-                            help="output directory")
-        parser.add_argument("--input", nargs='*', dest='inputs', default=None, \
-                             action="store", help="the input file or directory names")
-        args = parser.parse_args()
+        run_args()
 
-        """
-        with open('tt.py') as f:
-                contents = f.read()
-
-        cc = ast.parse(contents, filename='tt.py')
-        print to_source(cc)
-        """
-        if os.path.exists(args.output):
-                print >> sys.stderr, "%r already exists! " % args.output
-                sys.exit(1)
-        else:
-             os.mkdir(args.output)
-
-        def convert_file(rootdir, inputfile):
-                if os.path.isfile(os.path.join(rootdir, inputfile)) and \
-                   ".py" in inputfile[-3:] :
-                   with open( os.path.join( args.output, rootdir, inputfile), "aw") as ofd:
-                           with open(os.path.join(rootdir,inputfile)) as ifd:
-                                   contents = ifd.read()
-                           file_to_ast = ast.parse(contents, filename=inputfile)
-                           ofd.write( to_source(file_to_ast))
-
-        def convert_dirs(dirname):
-                 for root, dirs, files in os.walk(dirname):
-                       if not os.path.exists( os.path.join( args.output, root)):
-                                os.mkdir( os.path.join( args.output, root))
-                       for filename in files:
-                                convert_file(root, filename)
-        try :                        
-                for inputf in args.inputs:
-                        if os.path.isfile(inputf):
-                                convert_file("", inputf)
-                        else:
-                                convert_dirs(inputf)
-        except Exception as e:
-                                print e
-                                
 
 
                                 
