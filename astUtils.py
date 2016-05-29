@@ -13,9 +13,6 @@ from shutil import copyfile
 import _ast
 
 
-__all__=['to_source']
-
-
 """
 the version of astor must be
 __version__ = '0.6'
@@ -66,9 +63,10 @@ class decoWrapGenerator(SourceGenerator):
         
     def decorators(self, node, extra):
         if node.__class__ is _ast.FunctionDef:
-            self.result.append('\n@functionW')
+            self.result.append('\n@logWrap')
         else:
-            self.result.append('\n@classW')
+            self.result.append('\n@methodWrap')
+            
         for decorator in node.decorator_list:
             self.statement(decorator, '@', decorator)
         
