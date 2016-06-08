@@ -42,9 +42,8 @@ def convert_dirs(ind, outd, func):
                     convert_file(_spath(fn),
                                  _dpath(fn), func)
                 except:
-                    copyfile(_spath(fn),
-                             _dpath(fn))
-                                
+                    _safe_do(copyfile, _spath(fn), _dpath(fn))
+
 
 class NoDocSourceGenerator(SourceGenerator):
 
@@ -111,7 +110,7 @@ def run_args(inputf, outputd, op):
             _safe_do(os.rmdir, os.path.join(outputd,
                                             fn))
 
-            convert_dirs(fn, os.path.join(outputd, fn),
+            convert_dirs(fn, outputd,
                          ast_func[op])
 
         else:
