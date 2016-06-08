@@ -11,8 +11,9 @@ import warnings
 from functools import partial
 from shutil import copyfile
 import _ast
+from autopep8 import fix_file
 
-
+    
 """
 the version of astor must be
 __version__ = '0.6'
@@ -45,13 +46,13 @@ def convert_dirs(ind, outd, func):
                     _safe_do(copyfile, _spath(fn), _dpath(fn))
 
 
-class NoDocSourceGenerator(SourceGenerator):
+class NoDocGenerator(SourceGenerator):
 
     def visit_Expr(self, node):
         if isinstance(node.value, ast.Str):
             self.newline()
             return
-        super(NoDocSourceGenerator, self).visit_Expr(node)
+        super(NoDocGenerator, self).visit_Expr(node)
 
 
 class decoWrapGenerator(SourceGenerator):
@@ -80,7 +81,7 @@ def to_source(implclass, node, indent_with=' ' * 4, add_line_information=False,
     return pretty_source(str(s) for s in generator.result)
 
 
-noComment = lambda node: to_source(NoSourceGenerator, node)
+noComment = lambda node: to_source(NoDocGenerator, node)
 decoWrap = lambda node: to_source(decoWrapGenerator, node)
 
 
