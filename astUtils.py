@@ -27,11 +27,18 @@ def _safe_do(func, *args):
             return None
 
 
+def pep8_format(fn):
+    contents = fix_file(fn)
+    with open(fn, 'w') as f:
+        f.write(contents)
+    
+        
 def convert_file(sf, df, func):
     with open(df, "aw") as ofd, open(sf, 'r') as ifd:
         ast_node = ast.parse(ifd.read(), filename=sf)
         ofd.write(func(ast_node))
-
+    pep8_format(df)
+    
                            
 def convert_dirs(ind, outd, func):
     for root, dirs, files in os.walk(ind):
