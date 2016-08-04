@@ -2,7 +2,8 @@
 import click
 import os
 from astUtils.utils import _safe_do
-from astUtils import convert_file, convert_dirs
+from astUtils import convert_file, convert_dirs, \
+    NoDocGenerator, decoWrapGenerator
 import warnings
 
 
