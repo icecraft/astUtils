@@ -2,29 +2,23 @@
 # -*- coding: utf-8 -*-
 
 import ast
-from astor.code_gen import SourceGenerator
+try:
+    from astor.code_gen import SourceGenerator
+except:
+    print 'The Version of astor must equal or greater than 0.6'
 from astor.string_repr import pretty_string
 from astor.source_repr import pretty_source
 import os
-import click
-import warnings
 from functools import partial
 from shutil import copyfile
 import _ast
 from autopep8 import fix_file
-
+from .utils import _safe_do
     
 """
 the version of astor must be
 __version__ = '0.6'
 """
-
-
-def _safe_do(func, *args):
-    try:
-            return func(*args)
-    except:
-            return None
 
 
 def pep8_format(fn):
@@ -88,45 +82,6 @@ def to_source(implclass, node, indent_with=' ' * 4, add_line_information=False,
     return pretty_source(str(s) for s in generator.result)
 
 
-noComment = lambda node: to_source(NoDocGenerator, node)
-decoWrap = lambda node: to_source(decoWrapGenerator, node)
-
-
-ast_func = {'noComment': noComment,
-            'decoWrap': decoWrap}
-            
-            
-@click.command()
-@click.option('--inputf', '-m', multiple=True,
-              help='input files or directory')
-@click.option('--outputd', default='Converted',
-              help='output directory')
-@click.option('--op', type=click.Choice(['noComment', 'decoWrap']),
-              default='noComment', help='choose the operation')
-def run_args(inputf, outputd, op):
-    if not os.path.exists(outputd):
-            os.mkdir(outputd)
-    for fn in inputf:
-        if os.path.isfile(fn) and ".py" in fn[-3:]:
-            _safe_do(os.remove, os.path.join(outputd,
-                                             fn))
-        
-            convert_file(fn, os.path.join(outputd, fn),
-                         ast_func[op])
-
-        elif os.path.isdir(fn):
-            _safe_do(os.rmdir, os.path.join(outputd,
-                                            fn))
-
-            convert_dirs(fn, outputd,
-                         ast_func[op])
-
-        else:
-            warnings.warn("Invalid file name %s" % fn)
-                
-
-if __name__ == '__main__':
-        run_args()
 
 
 
