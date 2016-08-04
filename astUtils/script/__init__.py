@@ -3,7 +3,7 @@ import click
 import os
 from astUtils.utils import _safe_do
 from astUtils import convert_file, convert_dirs, \
-    NoDocGenerator, decoWrapGenerator
+    NoDocGenerator, decoWrapGenerator, to_source
 import warnings
 
 
